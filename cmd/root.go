@@ -20,7 +20,10 @@ func Execute() {
 	}
 }
 
+var toolsGroup = "tools"
+
 func init() {
+	rootCmd.AddGroup(&cobra.Group{ID: toolsGroup, Title: "Installer Tools"})
 	cobra.OnInitialize(initConfig)
 }
 
@@ -32,7 +35,7 @@ func initConfig() {
 
 func viperHack(commands []*cobra.Command) {
 	for _, cmd := range commands {
-		viper.BindPFlags(cmd.Flags())
+		_ = viper.BindPFlags(cmd.Flags())
 		viperHackEnv(cmd)
 		if cmd.HasSubCommands() {
 			viperHack(cmd.Commands())
@@ -41,11 +44,11 @@ func viperHack(commands []*cobra.Command) {
 }
 
 func viperHackEnv(cmd *cobra.Command) {
-	viper.BindPFlags(cmd.Flags())
+	_ = viper.BindPFlags(cmd.Flags())
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
-		viper.BindPFlag(f.Name, f)
+		_ = viper.BindPFlag(f.Name, f)
 		if viper.IsSet(f.Name) && viper.GetString(f.Name) != "" {
-			cmd.Flags().Set(f.Name, viper.GetString(f.Name))
+			_ = cmd.Flags().Set(f.Name, viper.GetString(f.Name))
 		}
 	})
 }

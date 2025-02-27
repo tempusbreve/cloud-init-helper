@@ -10,6 +10,8 @@ import (
 var tailscaleCmd = &cobra.Command{
 	Use:     "tailscale",
 	Aliases: []string{"ts"},
+	Short:   "Tailscale helper commands",
+	GroupID: toolsGroup,
 }
 
 var tsOpts = tailscaleOpts{}
@@ -24,13 +26,13 @@ func init() {
 	)
 
 	tailscaleCmd.PersistentFlags().StringVar(&tsOpts.apiKey, apiKeyName, "", "API Key for Tailscale")
-	tailscaleCmd.MarkPersistentFlagRequired(apiKeyName)
+	_ = tailscaleCmd.MarkPersistentFlagRequired(apiKeyName)
 
 	tailscaleCmd.PersistentFlags().StringVar(&tsOpts.authKey, authKeyName, "", "Auth Key for Tailscale")
-	tailscaleCmd.MarkPersistentFlagRequired(authKeyName)
+	_ = tailscaleCmd.MarkPersistentFlagRequired(authKeyName)
 
 	tailscaleCmd.PersistentFlags().StringVar(&tsOpts.domain, domainName, "", "Domain for Tailscale")
-	tailscaleCmd.MarkPersistentFlagRequired(domainName)
+	_ = tailscaleCmd.MarkPersistentFlagRequired(domainName)
 }
 
 type tailscaleOpts struct {
