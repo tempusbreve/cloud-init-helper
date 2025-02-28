@@ -153,18 +153,27 @@ func EnableAndStart() error {
 	return nil
 }
 
-func updateFile(ctx context.Context, name string, re regexp.Regexp, update string) error {
-	of, err := os.CreateTemp("", "update-file-*.tmp")
+type replacement struct {
+	Match   regexp.Regexp
+	Replace string
+}
+
+func updateFile(ctx context.Context, name string, replacements []replacement) error {
+	targetDir := filepath.Dir(name)
+	targetFile := filepath.Base(name)
+	of, err := os.CreateTemp(targetDir, fmt.Sprintf("~update-%s-*.tmp", targetFile))
 	if err != nil {
 		return fmt.Errorf("creating temp file: %w", err)
 	}
+	defer func(f *os.File) {
+		_ = f.Close()
+		_ = os.Remove(f.Name())
+	}(of)
 
 	w := bufio.NewWriter(of)
 
 	inf, err := os.Open(name)
 	if err != nil {
-		_ = of.Close()
-		_ = os.Remove(of.Name())
 		return fmt.Errorf("opening file %q for reading: %w", name, err)
 	}
 	defer inf.Close()
@@ -180,22 +189,23 @@ func updateFile(ctx context.Context, name string, re regexp.Regexp, update strin
 		case <-ctx.Done():
 			return fmt.Errorf("processing file interrupted: %w", ctx.Err())
 		default:
-			if _, err = w.WriteString(re.ReplaceAllString(fs.Text(), update) + nl); err != nil {
-				_ = of.Close()
-				_ = os.Remove(of.Name())
+			line := fs.Text()
+			for _, rplc := range replacements {
+				line = rplc.Match.ReplaceAllString(fs.Text(), rplc.Replace)
+			}
+			if _, err = w.WriteString(line + nl); err != nil {
 				return fmt.Errorf("writing to tempfile: %w", err)
 			}
 		}
 	}
 
 	if err = w.Flush(); err != nil {
-		_ = of.Close()
-		_ = os.Remove(of.Name())
 		return fmt.Errorf("flushing tempfile: %w", err)
 	}
 
 	newFile := of.Name()
 	_ = of.Close()
+	_ = inf.Close()
 
 	backup := name + ".bak-" + time.Now().Format(time.RFC3339Nano)
 	if err = os.Rename(name, backup); err != nil {
@@ -425,18 +435,13 @@ func configureDomains(ctx context.Context, params ConfigParameters) error {
 		additionalDomains += " " + a.MailDomain
 	}
 
-	for name, edit := range map[string]struct {
-		File        string
-		RE          regexp.Regexp
-		Replacement string
-	}{
-		"hostname": {File: confFile, RE: *regexp.MustCompile(`^\$\(hostname\) =.*$`), Replacement: "$(hostname) = " + params.Hostname},
-		"primary":  {File: confFile, RE: *regexp.MustCompile(`^\$\(primary_domain\) =.*$`), Replacement: "$(primary_domain) = " + params.PrimaryMailDomain},
-		"local":    {File: confFile, RE: *regexp.MustCompile(`^\$\(local_domains\) =.*$`), Replacement: "$(local_domains) = $(primary_domain)" + additionalDomains},
-	} {
-		if err := updateFile(ctx, edit.File, edit.RE, edit.Replacement); err != nil {
-			return fmt.Errorf("unable to make edit %q (%+v): %w", name, edit, err)
-		}
+	replacements := []replacement{
+		{Match: *regexp.MustCompile(`^\$\(hostname\) =.*$`), Replace: "$(hostname) = " + params.Hostname},
+		{Match: *regexp.MustCompile(`^\$\(primary_domain\) =.*$`), Replace: "$(primary_domain) = " + params.PrimaryMailDomain},
+		{Match: *regexp.MustCompile(`^\$\(local_domains\) =.*$`), Replace: "$(local_domains) = $(primary_domain)" + additionalDomains},
+	}
+	if err := updateFile(ctx, confFile, replacements); err != nil {
+		return fmt.Errorf("unable to make edits (%v): %w", replacements, err)
 	}
 
 	return nil
