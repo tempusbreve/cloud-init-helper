@@ -38,5 +38,5 @@ var destructive bool
 func init() {
 	cfMaddyCmd.AddCommand(updateDNSCmd)
 
-	updateDNSCmd.Flags().BoolVar(&destructive, "destructive", false, "Cause conflicting DNS records to be deleted")
+	updateDNSCmd.Flags().BoolVarP(&destructive, "destructive", "f", destructive, "Cause conflicting DNS records to be deleted")
 }

@@ -19,16 +19,16 @@ func init() {
 		cfMXHost     = "mx-host"
 	)
 
-	cfMaddyCmd.PersistentFlags().StringVar(&cfMailOpts.domain, cfMailDomain, "", "Mail Domain")
+	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.domain, cfMailDomain, "z", cfMailOpts.domain, "Mail Domain")
 	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfMailDomain)
 
-	cfMaddyCmd.PersistentFlags().StringVar(&cfMailOpts.postmaster, cfPostmaster, "", "Mail Domain Postmaster email address")
+	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.postmaster, cfPostmaster, "p", cfMailOpts.postmaster, "Mail Domain Postmaster email address")
 	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfPostmaster)
 
-	cfMaddyCmd.PersistentFlags().StringVar(&cfMailOpts.dkim, cfDKIM, "", "DKIM TXT record value")
+	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.dkim, cfDKIM, "k", cfMailOpts.dkim, "DKIM TXT record value")
 	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfDKIM)
 
-	cfMaddyCmd.PersistentFlags().StringSliceVar(&cfMailOpts.mxHosts, cfMXHost, []string{}, "DKIM TXT record value")
+	cfMaddyCmd.PersistentFlags().StringSliceVarP(&cfMailOpts.mxHosts, cfMXHost, "x", cfMailOpts.mxHosts, "DKIM TXT record value")
 	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfMXHost)
 }
 

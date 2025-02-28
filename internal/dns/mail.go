@@ -3,6 +3,9 @@ package dns
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -92,6 +95,11 @@ func (c *MailConfig) UpdateSPFRecords(ctx context.Context, options UpdateMailRec
 func (c *MailConfig) UpdateDKIMRecord(ctx context.Context, options UpdateMailRecordsParams) error {
 	name := "default._domainkey." + options.Domain
 
+	dkim, err := getDKIMRecord(options)
+	if err != nil {
+		return err
+	}
+
 	if options.Destructive {
 		existing, err := c.api.GetRecords(ctx, name, "TXT")
 		if err != nil {
@@ -105,7 +113,7 @@ func (c *MailConfig) UpdateDKIMRecord(ctx context.Context, options UpdateMailRec
 		}
 	}
 
-	rec := NewRecord(name, RecordTypeTXT, options.DKIM)
+	rec := NewRecord(name, RecordTypeTXT, dkim)
 	return c.api.CreateRecord(ctx, rec)
 }
 
@@ -157,4 +165,23 @@ func (c *MailConfig) UpdateMTSSTSRecord(ctx context.Context, options UpdateMailR
 	}
 
 	return nil
+}
+
+func getDKIMRecord(opts UpdateMailRecordsParams) (string, error) {
+	if opts.DKIM != "" {
+		return opts.DKIM, nil
+	}
+
+	df, err := os.Open(filepath.Join("/var/lib/maddy/dkim_keys", opts.Domain+"_default.dns"))
+	if err != nil {
+		return "", fmt.Errorf("opening dkim key file: %w", err)
+	}
+	defer df.Close()
+
+	buf, err := io.ReadAll(df)
+	if err != nil {
+		return "", fmt.Errorf("reading dkim key: %w", err)
+	}
+
+	return string(buf), nil
 }
