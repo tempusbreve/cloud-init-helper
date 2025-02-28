@@ -222,7 +222,7 @@ func updateFile(ctx context.Context, name string, replacements []replacement) er
 		default:
 			line := fs.Text()
 			for _, rplc := range replacements {
-				line = rplc.Match.ReplaceAllString(fs.Text(), rplc.Replace)
+				line = rplc.Match.ReplaceAllString(line, rplc.Replace)
 			}
 			if _, err = w.WriteString(line + nl); err != nil {
 				return fmt.Errorf("writing to tempfile: %w", err)
