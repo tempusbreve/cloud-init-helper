@@ -25,8 +25,7 @@ func init() {
 	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.postmaster, cfPostmaster, "p", cfMailOpts.postmaster, "Mail Domain Postmaster email address")
 	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfPostmaster)
 
-	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.dkim, cfDKIM, "k", cfMailOpts.dkim, "DKIM TXT record value")
-	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfDKIM)
+	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.dkim, cfDKIM, "k", cfMailOpts.dkim, "DKIM TXT record value, if not provided it will be discovered in the maddy config")
 
 	cfMaddyCmd.PersistentFlags().StringSliceVarP(&cfMailOpts.mxHosts, cfMXHost, "x", cfMailOpts.mxHosts, "DKIM TXT record value")
 	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfMXHost)

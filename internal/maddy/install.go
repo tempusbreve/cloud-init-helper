@@ -35,6 +35,29 @@ type InstallParameters struct {
 	KeepArtifacts bool
 }
 
+const (
+	defaultVersion = "0.8.1"
+	defaultBaseURL = "https://github.com/foxcpp/maddy/releases/download"
+)
+
+func (i InstallParameters) GetVersion() string {
+	v := i.Version
+	if len(v) > 0 && v[0] == 'v' {
+		v = v[1:]
+	}
+	if len(v) == 0 {
+		v = defaultVersion
+	}
+	return v
+}
+
+func (i InstallParameters) GetBaseURL() string {
+	if len(i.DownloadBaseURL) == 0 {
+		return defaultBaseURL
+	}
+	return i.DownloadBaseURL
+}
+
 type ConfigParameters struct {
 	Hostname              string
 	PrimaryMailDomain     string
@@ -45,6 +68,33 @@ type ConfigParameters struct {
 	InstallPrefix string
 	MaddyUser     string
 	MaddyGroup    string
+}
+
+const (
+	defaultInstallRoot = "/"
+	defaultUser        = "maddy"
+	defaultGroup       = "maddy"
+)
+
+func (c ConfigParameters) Root() string {
+	if len(c.InstallRoot) > 0 {
+		return c.InstallRoot
+	}
+	return defaultInstallRoot
+}
+
+func (c ConfigParameters) User() string {
+	if len(c.MaddyUser) > 0 {
+		return c.MaddyUser
+	}
+	return defaultUser
+}
+
+func (c ConfigParameters) Group() string {
+	if len(c.MaddyGroup) > 0 {
+		return c.MaddyGroup
+	}
+	return defaultGroup
 }
 
 func Install(ctx context.Context, params InstallParameters) error {
@@ -178,15 +228,8 @@ func downloadAndInstall(ctx context.Context, params InstallParameters, variant s
 		return fmt.Errorf("unable to get pipe to stdin from the extractCommand (%+v): %w", extractCmd, err)
 	}
 
-	baseURL := params.DownloadBaseURL
-	if baseURL == "" {
-		baseURL = "https://github.com/foxcpp/maddy/releases/download"
-	}
-
-	version := params.Version
-	if version == "" {
-		version = "0.8.1"
-	}
+	baseURL := params.GetBaseURL()
+	version := params.GetVersion()
 
 	dir := fmt.Sprintf("maddy-%s-%s", version, variant)
 	url := fmt.Sprintf("%s/v%s/%s.tar.zst", baseURL, version, dir)
@@ -316,14 +359,9 @@ func buildAndInstall(ctx context.Context, params InstallParameters) error {
 		repo = "https://github.com/foxcpp/maddy"
 	}
 
-	version := params.Version
-	if version == "" {
-		version = "0.8.1"
-	}
-
 	ref := params.GitRef
 	if ref == "" {
-		ref = "refs/tags/v" + version
+		ref = "refs/tags/v" + params.GetVersion()
 	}
 
 	log.Printf("begin clone: %v", repo)
@@ -379,11 +417,7 @@ func buildAndInstall(ctx context.Context, params InstallParameters) error {
 }
 
 func configureDomains(ctx context.Context, params ConfigParameters) error {
-	root := params.InstallRoot
-	if root == "" {
-		root = "/"
-	}
-
+	root := params.Root()
 	confFile := filepath.Join(root, "etc/maddy/maddy.conf")
 
 	additionalDomains := ""
@@ -409,11 +443,7 @@ func configureDomains(ctx context.Context, params ConfigParameters) error {
 }
 
 func configureCerts(_ context.Context, params ConfigParameters) error {
-	root := params.InstallRoot
-	if root == "" {
-		root = "/"
-	}
-
+	root := params.Root()
 	maddyCertsDir := filepath.Join(root, "etc/maddy/certs")
 	certsDir := filepath.Join(root, "etc/letsencrypt")
 	for _, d := range []string{"live", "archive"} {
@@ -431,21 +461,9 @@ func configureCerts(_ context.Context, params ConfigParameters) error {
 }
 
 func configurePermissions(_ context.Context, params ConfigParameters) error {
-	root := params.InstallRoot
-	if root == "" {
-		root = "/"
-	}
-
-	user := params.MaddyUser
-	if user == "" {
-		user = "maddy"
-	}
-
-	group := params.MaddyGroup
-	if group == "" {
-		group = "maddy"
-	}
-
+	root := params.Root()
+	user := params.User()
+	group := params.Group()
 	confDir := filepath.Join(root, "etc/maddy")
 	certsDir := filepath.Join(root, "etc/letsencrypt")
 	var leDirs []string
