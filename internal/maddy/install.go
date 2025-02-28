@@ -36,8 +36,11 @@ type InstallParameters struct {
 }
 
 const (
-	defaultVersion = "0.8.1"
-	defaultBaseURL = "https://github.com/foxcpp/maddy/releases/download"
+	defaultVersion    = "0.8.1"
+	defaultRepository = "https://github.com/foxcpp/maddy"
+	defaultBaseURL    = "https://github.com/foxcpp/maddy/releases/download"
+	defaultRoot       = "/"
+	defaultPrefix     = "usr/local"
 )
 
 func (i InstallParameters) GetVersion() string {
@@ -51,11 +54,39 @@ func (i InstallParameters) GetVersion() string {
 	return v
 }
 
+func (i InstallParameters) GetRef() string {
+	if len(i.GitRef) == 0 {
+		return "refs/tags/v" + i.GetVersion()
+	}
+	return i.GitRef
+}
+
+func (i InstallParameters) GetRepository() string {
+	if len(i.Repository) == 0 {
+		return defaultRepository
+	}
+	return i.Repository
+}
+
 func (i InstallParameters) GetBaseURL() string {
 	if len(i.DownloadBaseURL) == 0 {
 		return defaultBaseURL
 	}
 	return i.DownloadBaseURL
+}
+
+func (i InstallParameters) GetRoot() string {
+	if len(i.InstallRoot) == 0 {
+		return defaultRoot
+	}
+	return i.InstallRoot
+}
+
+func (i InstallParameters) GetPrefix() string {
+	if len(i.InstallPrefix) == 0 {
+		return defaultPrefix
+	}
+	return i.InstallPrefix
 }
 
 type ConfigParameters struct {
@@ -282,12 +313,9 @@ func downloadAndInstall(ctx context.Context, params InstallParameters, variant s
 	// install
 
 	buildDir := filepath.Join(workingDir, dir)
-	root := params.InstallRoot
-	if root == "" {
-		root = "/"
-	}
-
-	binDir := filepath.Join(root, params.InstallPrefix, "bin")
+	root := params.GetRoot()
+	prefix := params.GetPrefix()
+	binDir := filepath.Join(root, prefix, "bin")
 	configDir := filepath.Join(root, "etc/maddy")
 	confTarget := filepath.Join(configDir, "maddy.conf")
 
@@ -314,7 +342,7 @@ func downloadAndInstall(ctx context.Context, params InstallParameters, variant s
 	}
 
 	if runtime.GOOS == "linux" {
-		systemdDir := filepath.Join(root, params.InstallPrefix, "lib/systemd/system")
+		systemdDir := filepath.Join(root, prefix, "lib/systemd/system")
 		if out, err := exec.Command("install", "-m", "0755", "-d", systemdDir).CombinedOutput(); err != nil {
 			return fmt.Errorf("installing bin directory %q: %w\nOutput: %s", systemdDir, err, string(out))
 		}
@@ -337,7 +365,7 @@ func downloadAndInstall(ctx context.Context, params InstallParameters, variant s
 		if err != nil {
 			return fmt.Errorf("could not find man files: %w", err)
 		}
-		manTarget := filepath.Join(root, params.InstallPrefix, "share/man/man1")
+		manTarget := filepath.Join(root, prefix, "share/man/man1")
 		if out, err := exec.Command("install", "-m", "0755", "-d", manTarget).CombinedOutput(); err != nil {
 			return fmt.Errorf("installing man directory %q: %w\nOutput: %s", manTarget, err, string(out))
 		}
@@ -364,16 +392,8 @@ func buildAndInstall(ctx context.Context, params InstallParameters) error {
 
 	// clone repo
 
-	repo := params.Repository
-	if repo == "" {
-		repo = "https://github.com/foxcpp/maddy"
-	}
-
-	ref := params.GitRef
-	if ref == "" {
-		ref = "refs/tags/v" + params.GetVersion()
-	}
-
+	repo := params.GetRepository()
+	ref := params.GetRef()
 	log.Printf("begin clone: %v", repo)
 	if _, err = git.PlainCloneContext(ctx, "maddy", false, &git.CloneOptions{
 		URL:           repo,
@@ -381,7 +401,7 @@ func buildAndInstall(ctx context.Context, params InstallParameters) error {
 		SingleBranch:  true,
 		Depth:         1,
 	}); err != nil {
-		return fmt.Errorf("cloning repository %q: %w", params.Repository, err)
+		return fmt.Errorf("cloning repository %q: %w", repo, err)
 	}
 
 	// cd maddy
@@ -410,16 +430,10 @@ func buildAndInstall(ctx context.Context, params InstallParameters) error {
 
 	// build.sh install
 
-	root := params.InstallRoot
-	if root == "" {
-		root = "/"
-	}
-
-	if out, err := exec.Command(
-		"./build.sh",
-		"--destdir", root,
-		"--prefix", params.InstallPrefix,
-		"install").CombinedOutput(); err != nil {
+	root := params.GetRoot()
+	prefix := params.GetPrefix()
+	args := []string{"--destdir", root, "--prefix", prefix, "install"}
+	if out, err := exec.Command("./build.sh", args...).CombinedOutput(); err != nil {
 		return fmt.Errorf("running build.sh install: %w\n\nOutput: %s", err, string(out))
 	}
 
