@@ -19,7 +19,7 @@ func init() {
 		cfMXHost     = "mx-host"
 	)
 
-	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.domain, cfMailDomain, "z", cfMailOpts.domain, "Mail Domain")
+	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.domain, cfMailDomain, "m", cfMailOpts.domain, "Mail Domain")
 	_ = cfMaddyCmd.MarkPersistentFlagRequired(cfMailDomain)
 
 	cfMaddyCmd.PersistentFlags().StringVarP(&cfMailOpts.postmaster, cfPostmaster, "p", cfMailOpts.postmaster, "Mail Domain Postmaster email address")

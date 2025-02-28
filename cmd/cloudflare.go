@@ -24,13 +24,15 @@ func init() {
 		cfRecordName = "record-name"
 	)
 
-	cloudflareCmd.PersistentFlags().StringVar(&cfOpts.token, cfTokenKey, "", "Token for Cloudflare auth")
+	flags := cloudflareCmd.PersistentFlags()
+
+	flags.StringVarP(&cfOpts.token, cfTokenKey, "t", cfOpts.token, "Token for Cloudflare auth")
 	_ = cloudflareCmd.MarkPersistentFlagRequired(cfTokenKey)
 
-	cloudflareCmd.PersistentFlags().StringVar(&cfOpts.zoneName, cfZoneName, "", "Cloudflare Zone")
-	cloudflareCmd.PersistentFlags().StringVar(&cfOpts.zoneID, cfZoneID, "", "Cloudflare Zone ID")
-	cloudflareCmd.PersistentFlags().StringVar(&cfOpts.recordType, cfRecordType, "", "Record Type (MX, A, TXT, etc)")
-	cloudflareCmd.PersistentFlags().StringVar(&cfOpts.recordName, cfRecordName, "", "Record Name")
+	flags.StringVarP(&cfOpts.zoneName, cfZoneName, "z", cfOpts.zoneName, "Cloudflare Zone")
+	flags.StringVarP(&cfOpts.zoneID, cfZoneID, "i", cfOpts.zoneID, "Cloudflare Zone ID")
+	flags.StringVarP(&cfOpts.recordType, cfRecordType, "y", cfOpts.recordType, "Record Type (MX, A, TXT, etc)")
+	flags.StringVarP(&cfOpts.recordName, cfRecordName, "n", cfOpts.recordName, "Record Name")
 }
 
 type cloudflareOpts struct {
